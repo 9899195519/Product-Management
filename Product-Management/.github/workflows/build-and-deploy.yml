@@ -1,0 +1,115 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: build/libs/
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: build/libs/
+
+      - name: Deploy to dhirajtech.in
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT }}
+          script: |
+            cd /opt/applications/product-management
+            
+            # Stop the current application
+            if pgrep -f 'java.*Product-Management' > /dev/null; then
+              echo "Stopping current application..."
+              pkill -f 'java.*Product-Management'
+              sleep 5
+            fi
+            
+            # Copy the new JAR file
+            cp $GITHUB_WORKSPACE/build/libs/*.jar ./app.jar
+            
+            # Start the new application
+            echo "Starting application..."
+            nohup java -jar ./app.jar > app.log 2>&1 &
+            
+            sleep 5
+            
+            # Verify application is running
+            if pgrep -f 'java.*Product-Management' > /dev/null; then
+              echo "✓ Application started successfully"
+            else
+              echo "✗ Application failed to start"
+              tail -20 app.log
+              exit 1
+            fi
+
+      - name: Health check
+        run: |
+          echo "Waiting for application to be ready..."
+          sleep 5
+          
+          for i in {1..10}; do
+            if curl -f http://dhirajtech.in:9090/actuator/health 2>/dev/null || curl -f http://dhirajtech.in:9090/ 2>/dev/null; then
+              echo "✓ Application is healthy"
+              exit 0
+            fi
+            echo "Attempt $i/10 - Application not ready yet..."
+            sleep 3
+          done
+          
+          echo "✗ Application health check failed"
+          exit 1
+
+      - name: Deployment notification
+        if: success()
+        run: echo "✓ Deployment completed successfully!"
+
+      - name: Deployment failure notification
+        if: failure()
+        run: echo "✗ Deployment failed - check logs for details"
+
