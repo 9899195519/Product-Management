@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/Product-Management/src/main/java/com/dhiraj/product/repository/ProductRepository.java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/Product-Management/src/main/java/com/dhiraj/product/repository/ProductRepository.java" />
+              <option name="originalContent" value="package com.dhiraj.product.repository;&#10;&#10;import com.dhiraj.product.entity.Product;&#10;import org.springframework.data.jpa.repository.JpaRepository;&#10;import org.springframework.stereotype.Repository;&#10;&#10;@Repository&#10;public interface ProductRepository extends JpaRepository&lt;Product, Integer&gt; {&#10;}&#10;" />
+              <option name="updatedContent" value="package com.dhiraj.product.repository;&#10;&#10;import com.dhiraj.product.entity.Product;&#10;import org.springframework.data.jpa.repository.JpaRepository;&#10;import org.springframework.stereotype.Repository;&#10;&#10;@Repository&#10;public interface ProductRepository extends JpaRepository&lt;Product, Long&gt; {&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
