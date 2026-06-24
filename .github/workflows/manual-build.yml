@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
             name: build-jar
-            path: Product-Management\build\libs\*.jar
+            path: Product-Management\upload\*.jar
         env:
           CI: true
 
