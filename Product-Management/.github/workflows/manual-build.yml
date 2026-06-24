@@ -1,4 +1,5 @@
 name: Manual Gradle Build
+
 on:
   workflow_dispatch:
     inputs:
