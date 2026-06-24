@@ -28,6 +28,11 @@ jobs:
       - name: Build
         run: ./gradlew build --no-daemon
         working-directory: Product-Management
+      - name: Upload JAR (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+            name: build-jar
+            path: Product-Management\build\libs\*.jar
         env:
           CI: true
 
