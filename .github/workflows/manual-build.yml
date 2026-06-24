@@ -21,14 +21,13 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Build
-        run: |
-          cd Product-Management
-          chmod +x gradlew
-          ./gradlew clean build
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+        working-directory: Product-Management
 
-      - name: Run Gradle task
-        run: ./gradlew ${{ github.event.inputs.gradleTask }} --no-daemon
+      - name: Build
+        run: ./gradlew build --no-daemon
+        working-directory: Product-Management
         env:
           CI: true
 
