@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Build and Deploy Product Management Application
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       branch:
         description: 'Select branch to build and deploy'
         required: true
-        default: 'main'
+        default: main
         type: choice
         options:
           - main
@@ -30,15 +30,15 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Give execute permission
+      - name: Make gradlew executable
         run: chmod +x gradlew
         working-directory: Product-Management
 
       - name: Build application
-        run: ./gradlew build --no-daemon
+        run: ./gradlew clean build --no-daemon
         working-directory: Product-Management
 
-      - name: Upload Artifact
+      - name: Upload JAR Artifact
         uses: actions/upload-artifact@v4
         with:
           name: product-management-jar
@@ -55,6 +55,15 @@ jobs:
           name: product-management-jar
           path: artifact
 
+      - name: Create deployment directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p /root/app
+
       - name: Copy JAR to VM
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -62,9 +71,9 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "artifact/*.jar"
-          target: "/home/ubuntu/app"
+          target: "/root/app"
 
-      - name: Restart Application
+      - name: Restart Spring Boot Application
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
@@ -72,4 +81,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             pkill -f 'java -jar' || true
-            nohup java -jar /home/ubuntu/app/*.jar > app.log 2>&1 &
+            cd /root/app
+            JAR_FILE=$(ls *.jar | head -1)
+            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+            sleep 10
+            ps -ef | grep java
