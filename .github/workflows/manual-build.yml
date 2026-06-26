@@ -1,38 +1,75 @@
-name: Manual Gradle Build
+name: Build and Deploy
+
 on:
   workflow_dispatch:
     inputs:
-      gradleTask:
-        description: 'Gradle task to run (e.g., build, test)'
-        required: false
-        default: 'build'
+      branch:
+        description: 'Select branch to build and deploy'
+        required: true
+        default: 'main'
+        options:
+          - main
+          - develop
+          - feature-branch
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: 17
+          cache: gradle
 
-      - name: Make gradlew executable
+      - name: Give execute permission
         run: chmod +x gradlew
         working-directory: Product-Management
 
-      - name: Build
+      - name: Build application
         run: ./gradlew build --no-daemon
         working-directory: Product-Management
-      - name: Upload JAR (Windows)
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-            name: build-jar
-            path: Product-Management\upload\*.jar
-        env:
-          CI: true
+          name: product-management-jar
+          path: Product-Management/build/libs/*.jar
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: product-management-jar
+          path: artifact
+
+      - name: Copy JAR to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "artifact/*.jar"
+          target: "/home/ubuntu/app"
+
+      - name: Restart Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pkill -f 'java -jar' || true
+            nohup java -jar /home/ubuntu/app/*.jar > app.log 2>&1 &
