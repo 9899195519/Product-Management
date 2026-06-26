@@ -43,7 +43,17 @@ jobs:
         with:
           name: product-management-jar
           path: Product-Management/build/libs/*.jar
-
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          debug: true
+          script: |
+            whoami
+            hostname
+            pwd
   deploy:
     needs: build
     runs-on: ubuntu-latest
