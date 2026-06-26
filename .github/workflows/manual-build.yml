@@ -55,11 +55,11 @@ jobs:
           name: product-management-jar
           path: artifact
 
-      - name: Test SSH Connection
+      - name: Test SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
+          host: ${{ secrets.VM_HOST_IPV6 }}
+          username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           debug: true
